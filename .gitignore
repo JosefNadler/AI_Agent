@@ -1,0 +1,5 @@
+/venv/
+/temporary/
+.idea
+bonus
+__pycache__
