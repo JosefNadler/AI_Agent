@@ -1,5 +1,5 @@
-from dotenv import load_dotenv
 import os
+from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -23,11 +23,29 @@ def add_task(task: str, description=None):
     print(f"AI just added a new task: {task} with description: {description}")
     todoist.add_task(content=task, description=description)
 
-tools = [add_task]
+@tool
+def show_tasks():
+    """Show all tasks from Todoist. Use this tool when the user wants to see their tasks."""
+    tasks = []
+    first = True
+    results_paginator = todoist.get_tasks()
+    for tasks_list in results_paginator:
+        for task in tasks_list:
+            if first:
+                first = False
+            else:
+                tasks.append(task.content)
+    return tasks
+
+
+tools = [add_task, show_tasks]
 
 llm = ChatGoogleGenerativeAI(model='gemini-2.5-flash', google_api_key=gemini_api_key, temperature=0.3)
 
-system_prompt = "You are a helpful assistant. You will help the user add tasks."
+system_prompt = """You are a helpful assistant. 
+You will help the user add tasks.
+You will help the user show existing tasks. Print them in bullet list format.
+"""
 #system_prompt = "You are a helpful assistant."
 #user_input ="add a new task to buy a new car with the description: Buy it from the local dealer."
 #user_input = "what is the meaning of life."
@@ -50,7 +68,7 @@ while True:
     user_input = input("You: ")
 
     response = agent_executor.invoke({'input': user_input, 'history': history})
-    print(f"AI: {response['output']}")
+    print(response['output'])
     history.append(HumanMessage(content=user_input))
     history.append(AIMessage(content=response['output']))
 
